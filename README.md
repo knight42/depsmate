@@ -61,3 +61,39 @@ ignore:                  # dependency-name globs (path.Match) never auto-merged
 A config file that fails to parse (including unknown keys) makes depsmate
 skip your PRs entirely — it never falls back to a looser policy. Check the
 app's logs if PRs stop being merged after a config change.
+
+## Deploying to Cloudflare Workers
+
+The app runs as a TypeScript Worker at `https://depsmate.zejian.me`.
+Signed webhooks are acknowledged after being saved to Cloudflare Queues.
+Repository scans are split into pages and individual PR jobs, so work survives
+beyond the webhook request. Failed jobs retry three times, then move to
+`depsmate-failed` for inspection. Queues are available on the Workers Free plan;
+its usage and retention limits still apply.
+
+```sh
+npm ci
+npm run lint
+npm test
+npx wrangler queues create depsmate-jobs
+npx wrangler queues create depsmate-failed
+npx wrangler secret put DEPSMATE_APP_ID
+npx wrangler secret put DEPSMATE_PRIVATE_KEY
+npx wrangler secret put DEPSMATE_WEBHOOK_SECRET
+npm run deploy
+```
+
+Create queues once. `DEPSMATE_PRIVATE_KEY` is the PEM **contents**, not a path.
+Use PKCS#8 format; convert a downloaded GitHub App key with
+`openssl pkcs8 -topk8 -nocrypt -in app.pem` and pipe the output to
+`npx wrangler secret put DEPSMATE_PRIVATE_KEY`.
+For local development, place the same secrets in an ignored `.dev.vars` file
+and run `npm run dev`. `DEPSMATE_DRY_RUN=true` evaluates policy without posting
+reviews or merging. `/healthz` checks Worker availability; it does not check
+GitHub credentials or queue processing. Use `npx wrangler tail` for job logs.
+
+Configure the GitHub App webhook as `https://depsmate.zejian.me/webhook`, with
+JSON content type, SSL verification, and the same webhook secret. Subscribe to
+Pull request and Check suite events. Grant repository read/write permissions
+for Contents, Pull requests, Merge queues, and Workflows, plus read permissions
+for Checks and Commit statuses. Install the App on the repositories to manage.
