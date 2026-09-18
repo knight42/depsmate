@@ -1,0 +1,35 @@
+version: 2
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "cron"
+      cronjob: "0 9 * * *"
+      timezone: "America/Los_Angeles"
+    cooldown:
+      default-days: 30
+    rebase-strategy: "auto"
+    groups:
+      all:
+        patterns:
+          - "*"
+        update-types:
+          - "major"
+          - "minor"
+          - "patch"
+  - package-ecosystem: "gomod"
+    directory: "/"
+    schedule:
+      interval: "cron"
+      cronjob: "0 9 * * *"
+      timezone: "America/Los_Angeles"
+    cooldown:
+      default-days: 30
+    rebase-strategy: "auto"
+    groups:
+      minor-and-patch:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
