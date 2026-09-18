@@ -1,13 +1,13 @@
-.PHONY: build test lint tidy
-
-build:
-	go build ./...
+.PHONY: test lint dev deploy
 
 test:
-	go test ./...
+	npm test
 
 lint:
-	golangci-lint run
+	npm run lint
 
-tidy:
-	go mod tidy
+dev:
+	npm run dev
+
+deploy:
+	npm run deploy

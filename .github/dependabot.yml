@@ -17,7 +17,7 @@ updates:
           - "major"
           - "minor"
           - "patch"
-  - package-ecosystem: "gomod"
+  - package-ecosystem: "npm"
     directory: "/"
     schedule:
       interval: "cron"

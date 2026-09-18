@@ -1,3 +1,8 @@
-/depsmate
+node_modules/
+.wrangler/
+dist/
+coverage/
 *.pem
 .env
+.dev.vars
+.dev.vars.*

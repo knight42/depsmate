@@ -1,0 +1,21 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "depsmate",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-09-18",
+  "compatibility_flags": ["nodejs_compat"],
+  "account_id": "22bac35a7b729e9d10f97774753ba6b6",
+  "workers_dev": false,
+  "routes": [{ "pattern": "depsmate.zejian.me", "custom_domain": true }],
+  "observability": { "enabled": true },
+  "queues": {
+    "producers": [{ "binding": "JOBS", "queue": "depsmate-jobs" }],
+    "consumers": [{
+      "queue": "depsmate-jobs",
+      "max_batch_size": 1,
+      "max_batch_timeout": 1,
+      "max_retries": 3,
+      "dead_letter_queue": "depsmate-failed"
+    }]
+  }
+}

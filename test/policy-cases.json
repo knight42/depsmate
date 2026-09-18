@@ -1,0 +1,181 @@
+[
+  {
+    "name": "non-dependabot author denied",
+    "config": "",
+    "pr": {
+      "authorLogin": "jianzeng",
+      "headRef": "dependabot/go_modules/github.com/foo/bar-1.3.0",
+      "title": "chore: bump github.com/foo/bar from 1.2.3 to 1.3.0"
+    },
+    "want": false
+  },
+  {
+    "name": "non-dependabot branch denied",
+    "config": "",
+    "pr": {
+      "authorLogin": "dependabot[bot]",
+      "headRef": "feature/manual-bump",
+      "title": "bump foo from 1.2.3 to 1.3.0"
+    },
+    "want": false
+  },
+  {
+    "name": "github actions major bump allowed",
+    "config": "",
+    "pr": {
+      "authorLogin": "dependabot[bot]",
+      "headRef": "dependabot/github_actions/actions/checkout-5",
+      "title": "ci: bump actions/checkout from 4 to 5"
+    },
+    "want": true
+  },
+  {
+    "name": "library minor bump allowed",
+    "config": "",
+    "pr": {
+      "authorLogin": "dependabot[bot]",
+      "headRef": "dependabot/go_modules/github.com/foo/bar-1.3.0",
+      "title": "chore: bump github.com/foo/bar from 1.2.3 to 1.3.0",
+      "headCommitMessage": "Bumps [github.com/foo/bar](https://github.com/foo/bar) from 1.2.3 to 1.3.0.\n\n---\nupdated-dependencies:\n- dependency-name: github.com/foo/bar\n  dependency-version: 1.3.0\n  dependency-type: direct:production\n  update-type: version-update:semver-minor\n...\n"
+    },
+    "want": true
+  },
+  {
+    "name": "library major bump denied",
+    "config": "",
+    "pr": {
+      "authorLogin": "dependabot[bot]",
+      "headRef": "dependabot/npm_and_yarn/react-20.0.0",
+      "title": "chore: bump react from 19.1.0 to 20.0.0",
+      "headCommitMessage": "Bumps [react](https://github.com/facebook/react) from 19.1.0 to 20.0.0.\n\n---\nupdated-dependencies:\n- dependency-name: react\n  update-type: version-update:semver-major\n...\n"
+    },
+    "want": false
+  },
+  {
+    "name": "grouped minor and patch allowed",
+    "config": "",
+    "pr": {
+      "authorLogin": "dependabot[bot]",
+      "headRef": "dependabot/go_modules/aws-1b2c3d",
+      "title": "chore: bump the aws group with 2 updates",
+      "headCommitMessage": "Bumps the aws group with 2 updates.\n\n---\nupdated-dependencies:\n- dependency-name: github.com/aws/aws-sdk-go-v2\n  update-type: version-update:semver-minor\n- dependency-name: github.com/aws/smithy-go\n  update-type: version-update:semver-patch\n...\n"
+    },
+    "want": true
+  },
+  {
+    "name": "grouped containing major denied",
+    "config": "",
+    "pr": {
+      "authorLogin": "dependabot[bot]",
+      "headRef": "dependabot/npm_and_yarn/tooling-4e5f6a",
+      "title": "chore: bump the tooling group with 2 updates",
+      "headCommitMessage": "Bumps the tooling group with 2 updates.\n\n---\nupdated-dependencies:\n- dependency-name: left-pad\n  update-type: version-update:semver-patch\n- dependency-name: webpack\n  update-type: version-update:semver-major\n...\n"
+    },
+    "want": false
+  },
+  {
+    "name": "no metadata, title within same major allowed",
+    "config": "",
+    "pr": {
+      "authorLogin": "dependabot[bot]",
+      "headRef": "dependabot/pip/requests-2.32.5",
+      "title": "build: bump requests from 2.32.4 to 2.32.5"
+    },
+    "want": true
+  },
+  {
+    "name": "no metadata, title crossing major denied",
+    "config": "",
+    "pr": {
+      "authorLogin": "dependabot[bot]",
+      "headRef": "dependabot/pip/numpy-3.0.0",
+      "title": "build: bump numpy from v2.3.1 to v3.0.0"
+    },
+    "want": false
+  },
+  {
+    "name": "no metadata, grouped title denied",
+    "config": "",
+    "pr": {
+      "authorLogin": "dependabot[bot]",
+      "headRef": "dependabot/npm_and_yarn/tooling-4e5f6a",
+      "title": "chore: bump the tooling group with 3 updates"
+    },
+    "want": false
+  },
+  {
+    "name": "config disabled denies everything",
+    "config": "enabled: false\n",
+    "pr": {
+      "authorLogin": "dependabot[bot]",
+      "headRef": "dependabot/go_modules/github.com/foo/bar-1.3.0",
+      "title": "chore: bump github.com/foo/bar from 1.2.3 to 1.3.0",
+      "headCommitMessage": "Bumps [github.com/foo/bar](https://github.com/foo/bar) from 1.2.3 to 1.3.0.\n\n---\nupdated-dependencies:\n- dependency-name: github.com/foo/bar\n  dependency-version: 1.3.0\n  dependency-type: direct:production\n  update-type: version-update:semver-minor\n...\n"
+    },
+    "want": false
+  },
+  {
+    "name": "config wildcard patch denies minor",
+    "config": "ecosystems:\n  \"*\": patch\n",
+    "pr": {
+      "authorLogin": "dependabot[bot]",
+      "headRef": "dependabot/go_modules/github.com/foo/bar-1.3.0",
+      "title": "chore: bump github.com/foo/bar from 1.2.3 to 1.3.0",
+      "headCommitMessage": "Bumps [github.com/foo/bar](https://github.com/foo/bar) from 1.2.3 to 1.3.0.\n\n---\nupdated-dependencies:\n- dependency-name: github.com/foo/bar\n  dependency-version: 1.3.0\n  dependency-type: direct:production\n  update-type: version-update:semver-minor\n...\n"
+    },
+    "want": false
+  },
+  {
+    "name": "config ecosystem major allows major",
+    "config": "ecosystems:\n  npm_and_yarn: major\n",
+    "pr": {
+      "authorLogin": "dependabot[bot]",
+      "headRef": "dependabot/npm_and_yarn/react-20.0.0",
+      "title": "chore: bump react from 19.1.0 to 20.0.0",
+      "headCommitMessage": "Bumps [react](https://github.com/facebook/react) from 19.1.0 to 20.0.0.\n\n---\nupdated-dependencies:\n- dependency-name: react\n  update-type: version-update:semver-major\n...\n"
+    },
+    "want": true
+  },
+  {
+    "name": "config wildcard merges over default, actions keep major",
+    "config": "ecosystems:\n  \"*\": patch\n",
+    "pr": {
+      "authorLogin": "dependabot[bot]",
+      "headRef": "dependabot/github_actions/actions/checkout-5",
+      "title": "ci: bump actions/checkout from 4 to 5"
+    },
+    "want": true
+  },
+  {
+    "name": "config ecosystem override caps actions at minor",
+    "config": "ecosystems:\n  github_actions: minor\n",
+    "pr": {
+      "authorLogin": "dependabot[bot]",
+      "headRef": "dependabot/github_actions/actions/checkout-5",
+      "title": "ci: bump actions/checkout from 4 to 5"
+    },
+    "want": false
+  },
+  {
+    "name": "config ignore glob denies matching dependency",
+    "config": "ignore:\n  - github.com/aws/*\n",
+    "pr": {
+      "authorLogin": "dependabot[bot]",
+      "headRef": "dependabot/go_modules/aws-1b2c3d",
+      "title": "chore: bump the aws group with 2 updates",
+      "headCommitMessage": "Bumps the aws group with 2 updates.\n\n---\nupdated-dependencies:\n- dependency-name: github.com/aws/aws-sdk-go-v2\n  update-type: version-update:semver-minor\n- dependency-name: github.com/aws/smithy-go\n  update-type: version-update:semver-patch\n...\n"
+    },
+    "want": false
+  },
+  {
+    "name": "config ignore exact name denies",
+    "config": "ignore:\n  - github.com/foo/bar\n",
+    "pr": {
+      "authorLogin": "dependabot[bot]",
+      "headRef": "dependabot/go_modules/github.com/foo/bar-1.3.0",
+      "title": "chore: bump github.com/foo/bar from 1.2.3 to 1.3.0",
+      "headCommitMessage": "Bumps [github.com/foo/bar](https://github.com/foo/bar) from 1.2.3 to 1.3.0.\n\n---\nupdated-dependencies:\n- dependency-name: github.com/foo/bar\n  dependency-version: 1.3.0\n  dependency-type: direct:production\n  update-type: version-update:semver-minor\n...\n"
+    },
+    "want": false
+  }
+]
