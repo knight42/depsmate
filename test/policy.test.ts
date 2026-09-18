@@ -12,7 +12,7 @@ describe("policy parity with Go", () => {
 it.each(["max_update_type: minor", "ecosystems:\n  pip: everything", ":\n  - {", "enabled: yes", "ignore: foo", "ecosystems: []", "enabled: true\nenabled: false", "ecosystems:\n  '*': constructor"])("rejects invalid config %s", text => {
   expect(() => parseConfig(text)).toThrow();
 });
-it("rejects incomplete grouped metadata without title fallback", () => {
+it("rejects untyped non-indirect entries in a group", () => {
   expect(evaluate(defaultConfig(), {
     authorLogin: "dependabot[bot]", headRef: "dependabot/npm_and_yarn/group", title: "Bump a from 1.0 to 1.1",
     headCommitMessage: "- dependency-name: a\n  update-type: version-update:semver-minor\n- dependency-name: b",
@@ -29,30 +29,42 @@ const securityPR = {
   title: "build(deps): bump golang.org/x/net from 0.49.0 to 0.55.0",
   headCommitMessage: "---\nupdated-dependencies:\n- dependency-name: golang.org/x/net\n  dependency-version: 0.55.0\n  dependency-type: indirect\n...",
 };
-it("accepts security update metadata without update-type", () => {
+it("accepts indirect metadata without update-type", () => {
   expect(evaluate(defaultConfig(), securityPR).merge).toBe(true);
 });
-it.each([
-  "bump another/package from 0.49.0 to 0.55.0",
-  "bump golang.org/x/net from unknown to unknown",
-  "bump golang.org/x/net from 0.49.0-rc.1 to 0.55.0",
-  "bump golang.org/x/net from 0.49 to 0.55.0",
-  "bump the security group with 2 updates",
-  "bump golang.org/x/net from 0.49.0 to 0.55.0 and bump other from 1 to 2",
-  "bump golang.org/x/net from 0.49.0 to 1.0.0",
-])("denies ambiguous or disallowed security update: %s", title => {
-  expect(evaluate(defaultConfig(), { ...securityPR, title }).merge).toBe(false);
+it("allows indirect updates regardless of title or version cap", () => {
+  expect(evaluate(parseConfig("ecosystems:\n  '*': patch"), {
+    ...securityPR, title: "security update with no version information",
+  }).merge).toBe(true);
 });
-it.each([
-  "ecosystems:\n  '*': patch",
-  "ignore:\n  - golang.org/x/net",
-  "enabled: false",
-])("applies policy to inferred security updates: %s", config => {
+it.each(["ignore:\n  - golang.org/x/net", "enabled: false"])("still applies %s", config => {
   expect(evaluate(parseConfig(config), securityPR).merge).toBe(false);
 });
-it.each([
-  "\n- dependency-name: other/package",
-  "\n  update-type: unknown",
-])("does not infer grouped or unrecognized metadata: %s", suffix => {
-  expect(evaluate(defaultConfig(), { ...securityPR, headCommitMessage: securityPR.headCommitMessage + suffix }).merge).toBe(false);
+it.each(["unknown", "", "version-update:semver-major"])("allows indirect updates with update-type %s", type => {
+  expect(evaluate(defaultConfig(), { ...securityPR,
+    headCommitMessage: securityPR.headCommitMessage + `\n  update-type: ${type}`,
+  }).merge).toBe(true);
+});
+it.each(["before", "after"])("checks typed entries %s an untyped entry", order => {
+  const typed = "- dependency-name: other\n  update-type: version-update:semver-major\n";
+  const untyped = "- dependency-name: golang.org/x/net\n  dependency-type: indirect\n";
+  expect(evaluate(defaultConfig(), { ...securityPR,
+    headCommitMessage: order === "before" ? typed + untyped : untyped + typed,
+  }).merge).toBe(false);
+});
+it("applies ignore rules to every untyped entry in a group", () => {
+  expect(evaluate(parseConfig("ignore: [other]"), { ...securityPR,
+    headCommitMessage: "- dependency-name: golang.org/x/net\n  dependency-type: indirect\n- dependency-name: other\n  dependency-type: indirect\n",
+  }).merge).toBe(false);
+});
+
+it.each(["direct:production", "direct:development", "unknown", ""])("requires update-type for %s dependencies", dependencyType => {
+  expect(evaluate(defaultConfig(), { ...securityPR,
+    headCommitMessage: securityPR.headCommitMessage.replace("dependency-type: indirect", `dependency-type: ${dependencyType}`),
+  }).merge).toBe(false);
+});
+it("allows a mixed group of indirect and direct minor updates", () => {
+  expect(evaluate(defaultConfig(), { ...securityPR,
+    headCommitMessage: "- dependency-name: indirect/package\n  dependency-type: indirect\n- dependency-name: direct/package\n  dependency-type: direct:production\n  update-type: version-update:semver-minor\n",
+  }).merge).toBe(true);
 });

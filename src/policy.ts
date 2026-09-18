@@ -60,17 +60,27 @@ export function evaluate(cfg: Config, pr: PolicyPR): Decision {
   const maxType = Object.hasOwn(cfg.ecosystems, eco) ? cfg.ecosystems[eco] : cfg.ecosystems["*"];
   const maxRank = ranks[maxType] ?? 0;
   const message = pr.headCommitMessage ?? "";
-  const names = [...message.matchAll(/^\s*-\s*dependency-name:\s*"?([^"\s]+)"?\s*$/gm)].map(m => m[1]);
-  const types = [...message.matchAll(/^\s*update-type:\s*version-update:semver-(major|minor|patch)\s*$/gm)].map(m => m[1] as UpdateType);
-  // Security updates can omit update-type. Only infer a single dependency's
-  // bump from an unambiguous title; incomplete grouped metadata stays denied.
-  const missingSingleType = names.length === 1 && types.length === 0 && !/^\s*update-type:/m.test(message);
-  if (names.length !== types.length && !missingSingleType) return deny(`commit metadata lists ${names.length} dependencies but ${types.length} update types`);
-  if (!names.length || missingSingleType) {
+  const entries = [...message.matchAll(/^\s*-\s*dependency-name:\s*"?([^"\s]+)"?\s*$/gm)];
+  const names = entries.map(entry => entry[1]);
+  const types: (UpdateType | undefined)[] = [];
+  for (let i = 0; i < entries.length; i++) {
+    const block = message.slice(entries[i].index! + entries[i][0].length, entries[i + 1]?.index);
+    const fields = [...block.matchAll(/^[ \t]*update-type:[ \t]*(.*)$/gm)];
+    // Each indirect dependency bypasses the version cap, even without update-type.
+    // Other entries in a mixed group must still pass their own version policy.
+    const dependencyTypes = [...block.matchAll(/^[ \t]*dependency-type:[ \t]*(.*)$/gm)];
+    if (dependencyTypes.length === 1 && dependencyTypes[0][1].trim() === "indirect") {
+      types.push(undefined);
+      continue;
+    }
+    const type = /^version-update:semver-(major|minor|patch)$/.exec((fields[0]?.[1] ?? "").trim())?.[1] as UpdateType | undefined;
+    if (fields.length !== 1 || !type) return deny(`invalid update-type for ${names[i]}`);
+    types.push(type);
+  }
+  if (!names.length) {
     const bumps = [...pr.title.matchAll(/\bbumps? (\S+) from v?(\S+) to v?(\S+)/gi)];
     if (bumps.length !== 1) return deny(`${eco} bump has no metadata or single-dependency title`);
     const [, name, from, to] = bumps[0];
-    if (missingSingleType && name !== names[0]) return deny("title dependency does not match commit metadata");
     const numericVersion = /^(0|[1-9]\d*)(\.(0|[1-9]\d*)){0,2}$/;
     if (!numericVersion.test(from) || !numericVersion.test(to)) return deny("title versions are not unambiguous numeric releases");
     const f = from.split("."), t = to.split(".");
@@ -83,7 +93,9 @@ export function evaluate(cfg: Config, pr: PolicyPR): Decision {
     if (cfg.ignore.some(pattern => minimatch(names[i], pattern, {
       dot: true, noglobstar: true, noext: true, nobrace: true, nonegate: true, nocomment: true,
     }))) return deny(`dependency ${names[i]} is in the ignore list`);
-    if (ranks[types[i]] > maxRank) return deny(`${eco} bump of ${names[i]} is semver-${types[i]}, above allowed semver-${maxType}`);
+    const type = types[i];
+    if (type !== undefined && ranks[type] > maxRank) return deny(`${eco} bump of ${names[i]} is semver-${types[i]}, above allowed semver-${maxType}`);
   }
-  return { merge: true, reason: `${eco} bump, all ${names.length} update(s) within semver-${maxType}` };
+  const indirect = types.filter(type => type === undefined).length;
+  return { merge: true, reason: `${eco} bump, all ${names.length} update(s) allowed${indirect ? `; ${indirect} indirect dependencies exempt from version limits` : ` within semver-${maxType}`}` };
 }
