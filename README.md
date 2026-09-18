@@ -18,6 +18,12 @@ whose bump kind can't be determined — is left alone for a human.
 
 Only PRs authored by `dependabot[bot]` are ever touched.
 
+Security updates use the same version limits and ignore rules. When a single
+dependency's commit metadata omits `update-type`, depsmate infers the bump from
+the PR title only if the dependency name matches and both versions are numeric
+releases with the same number of components. Incomplete grouped updates and
+ambiguous versions are left for a human.
+
 ## What it does to an allowed PR
 
 1. Submits an approving review (satisfies a required-review rule).
