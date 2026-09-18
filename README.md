@@ -13,16 +13,16 @@ within the allowed update type:
 | `github_actions` | any bump, including major |
 | everything else (Go, npm, pip, ...) | minor and patch only |
 
-Anything else — a major library bump, a grouped PR containing one, or a PR
-whose bump kind can't be determined — is left alone for a human.
+Dependencies marked `dependency-type: indirect` in commit metadata are allowed
+regardless of version size or a missing `update-type`. Other dependencies must
+pass the version limits above; a group is allowed only if every entry passes.
 
 Only PRs authored by `dependabot[bot]` are ever touched.
 
-Security updates use the same version limits and ignore rules. When a single
-dependency's commit metadata omits `update-type`, depsmate infers the bump from
-the PR title only if the dependency name matches and both versions are numeric
-releases with the same number of components. Incomplete grouped updates and
-ambiguous versions are left for a human.
+Ignore rules and `enabled: false` still apply to indirect dependencies.
+Missing `update-type` alone does not allow an update: metadata entries without
+`dependency-type: indirect` require a recognized update type. When dependency
+metadata is entirely absent, the single-dependency title fallback still applies.
 
 ## What it does to an allowed PR
 

@@ -21,7 +21,7 @@ TypeScript GitHub App on Cloudflare Workers. User-facing docs live in README.md.
 
 ## Design rules
 
-- Fail closed on invalid config, unknown config keys, indeterminate update types, or
+- Fail closed on invalid config, unknown config keys, indeterminate non-indirect update types, or
   GitHub API errors. Read `.github/depsmate.yml` from the PR base branch only.
 - Defaults are `{github_actions: major, "*": minor}`; configured ecosystems merge
   over them. Every dependency in a grouped update must pass the policy.
@@ -38,10 +38,11 @@ TypeScript GitHub App on Cloudflare Workers. User-facing docs live in README.md.
 - Queue branches omit the merge method when arming auto-merge. Other branches
   select squash, merge, then rebase from the repository's allowed methods.
 - Dependabot update metadata comes from the head commit message, not the PR
-  body. A single dependency title is the fallback when metadata is absent or a
-  single dependency omits update-type (as security updates can). In the latter
-  case the title name must match metadata. Infer only numeric release versions
-  with equal precision; incomplete groups and unknown update types stay denied.
+  body. Entries marked dependency-type: indirect bypass version limits and do
+  not require update-type; ignore rules still apply. Evaluate each group entry
+  independently, requiring recognized update types for non-indirect entries.
+  A single dependency title is the fallback only when metadata is absent.
+  Infer only numeric release versions with equal precision.
 - GitHub GraphQL errors use message matching. Do not hide failures or log
   credentials, JWTs, webhook payloads, or private keys.
 
