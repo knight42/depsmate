@@ -62,13 +62,20 @@ export function evaluate(cfg: Config, pr: PolicyPR): Decision {
   const message = pr.headCommitMessage ?? "";
   const names = [...message.matchAll(/^\s*-\s*dependency-name:\s*"?([^"\s]+)"?\s*$/gm)].map(m => m[1]);
   const types = [...message.matchAll(/^\s*update-type:\s*version-update:semver-(major|minor|patch)\s*$/gm)].map(m => m[1] as UpdateType);
-  if (names.length !== types.length) return deny(`commit metadata lists ${names.length} dependencies but ${types.length} update types`);
-  if (!names.length) {
+  // Security updates can omit update-type. Only infer a single dependency's
+  // bump from an unambiguous title; incomplete grouped metadata stays denied.
+  const missingSingleType = names.length === 1 && types.length === 0 && !/^\s*update-type:/m.test(message);
+  if (names.length !== types.length && !missingSingleType) return deny(`commit metadata lists ${names.length} dependencies but ${types.length} update types`);
+  if (!names.length || missingSingleType) {
     const bumps = [...pr.title.matchAll(/\bbumps? (\S+) from v?(\S+) to v?(\S+)/gi)];
     if (bumps.length !== 1) return deny(`${eco} bump has no metadata or single-dependency title`);
     const [, name, from, to] = bumps[0];
+    if (missingSingleType && name !== names[0]) return deny("title dependency does not match commit metadata");
+    const numericVersion = /^(0|[1-9]\d*)(\.(0|[1-9]\d*)){0,2}$/;
+    if (!numericVersion.test(from) || !numericVersion.test(to)) return deny("title versions are not unambiguous numeric releases");
     const f = from.split("."), t = to.split(".");
-    names.push(name);
+    if (f.length !== t.length) return deny("title versions have different precision");
+    if (!names.length) names.push(name);
     types.push(f[0] !== t[0] ? "major" : f.length > 1 && t.length > 1 && f[1] !== t[1] ? "minor" : "patch");
   }
   for (let i = 0; i < names.length; i++) {
