@@ -71,6 +71,24 @@ beyond the webhook request. Failed jobs retry three times, then move to
 `depsmate-failed` for inspection. Queues are available on the Workers Free plan;
 its usage and retention limits still apply.
 
+Production deployment uses Cloudflare Workers Builds. In GitHub Actions, select
+**Deploy main via Cloudflare Builds → Run workflow** on `main`. The workflow
+submits a build for the latest `main` commit; check Cloudflare's build history
+for the final deployment result. GitHub stores only the
+`CLOUDFLARE_DEPLOY_HOOK_URL` secret, not a Cloudflare API token.
+
+Cloudflare build settings:
+
+- Repository: `knight42/depsmate`, production branch: `main`, root: `/`.
+- Build command: `npm run lint && npm test`.
+- Deploy command: `npm run deploy`.
+- Non-production builds: disabled.
+- Build watch paths: include `*`, exclude `*` to suppress push-triggered builds.
+- Deploy Hook: `github-manual-main`, fixed to `main`; manual hooks bypass watch paths.
+- Deployment credentials: Cloudflare-managed `depsmate - Workers Builds` token.
+
+The following commands are for initial provisioning or direct local deployment:
+
 ```sh
 npm ci
 npm run lint
