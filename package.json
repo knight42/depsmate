@@ -18,10 +18,10 @@
     "yaml": "^2.9.1"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^5.20260929.1",
+    "@cloudflare/workers-types": "^5.20260930.2",
     "@types/node": "^26.6.3",
     "typescript": "^7.0.2",
     "vitest": "^4.1.11",
-    "wrangler": "^4.143.1"
+    "wrangler": "^4.145.0"
   }
 }
